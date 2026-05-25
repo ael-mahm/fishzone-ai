@@ -1,0 +1,60 @@
+import copernicusmarine
+import xarray as xr
+import os
+from datetime import datetime, timedelta
+
+MIN_LON = -16.55
+MAX_LON = -16.20
+MIN_LAT = 23.55
+MAX_LAT = 24.05
+
+TARGET_DATE = (datetime.utcnow() + timedelta(days=1)).strftime("%Y-%m-%d")
+
+OUTPUT_DIR = "./ocean_data"
+OUTPUT_FILE = "sst_forecast_tomorrow.nc"
+
+def fetch_sst_forecast():
+    print(f"Requesting SST forecast data for {TARGET_DATE}...")
+    
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    
+    file_path = os.path.join(OUTPUT_DIR, OUTPUT_FILE)
+    if os.path.exists(file_path):
+        os.remove(file_path)
+        print(f"Removed old file: {file_path}")
+
+    copernicusmarine.subset(
+        dataset_id="cmems_mod_glo_phy-thetao_anfc_0.083deg_P1D-m", 
+        variables=["thetao"],  
+        minimum_longitude=MIN_LON,
+        maximum_longitude=MAX_LON,
+        minimum_latitude=MIN_LAT,
+        maximum_latitude=MAX_LAT,
+        start_datetime=f"{TARGET_DATE} 00:00:00",
+        end_datetime=f"{TARGET_DATE} 23:59:59",
+        minimum_depth=0.0,
+        maximum_depth=1.0,
+        output_filename=OUTPUT_FILE,
+        output_directory=OUTPUT_DIR
+    )
+    
+    print(f"Download complete! Saved to {OUTPUT_DIR}/{OUTPUT_FILE}")
+
+def read_and_preview_data():
+    file_path = os.path.join(OUTPUT_DIR, OUTPUT_FILE)
+    
+    if os.path.exists(file_path):
+        print("\n--- Preprocessing Data ---")
+        dataset = xr.open_dataset(file_path)
+        
+        sst_data = dataset['thetao']
+        
+        print(sst_data)
+        
+        dataset.close()
+    else:
+        print("File not found. Please run the download function first.")
+
+if __name__ == "__main__":
+    fetch_sst_forecast()
+    read_and_preview_data()
